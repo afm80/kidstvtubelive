@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>قنوات البث المباشر للأطفال</title>
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@700&display=swap');
+
+*{box-sizing:border-box}
+html,body{
+  margin:0;
+  padding:0;
+  width:100%;
+  height:100%;
+  font-family:'Cairo',sans-serif;
+  background:#000;
+}
+
+.wrapper{
+  width:100%;
+  max-width:1100px;
+  padding:10px;
+  margin:auto;
+}
+
+.grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
+  gap:12px;
+  justify-items:center;
+}
+
+.card{
+  background:rgba(255,255,255,.92);
+  border-radius:10px;
+  padding:4px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  cursor:pointer;
+  width:100%;
+  max-width:180px;
+  border:1px solid rgba(0,0,0,0.2);
+  color:inherit;
+  font:inherit;
+  transition:transform 0.2s;
+}
+
+.card:hover {
+  transform:scale(1.02);
+  box-shadow:0 4px 8px rgba(255,255,255,0.2);
+}
+
+.card img{
+  width:100%;
+  aspect-ratio:16/9;
+  object-fit:cover;
+  border-radius:8px;
+}
+
+.card-title{
+  margin-top:4px;
+  font-size:13px;
+  color:#000;
+  text-align:center;
+  font-weight:700;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  line-height:1.2;
+  padding:2px 0;
+}
+
+#playerPage{
+  position:fixed;
+  top:0;
+  left:0;
+  right:0;
+  bottom:0;
+  width:100%;
+  height:100vh;
+  background:#000;
+  display:none;
+  z-index:9999;
+  overflow:hidden;
+}
+
+#youtubeFrame{
+  width:100%;
+  height:100%;
+  border:none;
+  position:relative;
+  z-index:1;
+}
+
+#ytPoster{
+  position:absolute;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  z-index:2;
+  display:none;
+}
+</style>
+</head>
+
+<body>
+
+<div class="wrapper" id="home">
+  <div class="grid" id="channelsGrid">
+    </div>
+</div>
+
+<div id="playerPage">
+  <img id="ytPoster">
+  <iframe id="youtubeFrame" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+</div>
+
+<script>
+// أضف القنوات هنا: الاسم في سطر، والرابط في السطر الذي يليه
+const channelsData = `
+
+Tom & Jerry
+https://www.youtube.com/watch?v=rEKifG2XUZg
+Tom & Jerry
+https://www.youtube.com/watch?v=_XeGYNTiuSM
+Tom & Jerry
+https://www.youtube.com/watch?v=400k2SKoeh4
+Mini Moments
+https://www.youtube.com/watch?v=btP-bWKDVik
+Adventure Time
+https://www.youtube.com/watch?v=uZkaJ3e9nfY
+Mr Bean 
+https://www.youtube.com/watch?v=kRL8tyCl1lQ
+Mr Bean 
+https://www.youtube.com/watch?v=yOxRjvGkYlc
+shaun the Sheep
+https://www.youtube.com/watch?v=iMzH7R-OJ9E
+shaun the Sheep
+https://www.youtube.com/watch?v=yH28BYhTIYo
+World of Gumball
+https://www.youtube.com/watch?v=nIyaCRNwxhU
+غامبول الموسم الجديد
+https://www.youtube.com/watch?v=IT1IZpY7uzA
+ماشا والدب
+https://www.youtube.com/watch?v=S_6wjcgw1mk
+لولو وناسة
+https://www.youtube.com/watch?v=HoX-sU9hDV8
+أغاني جديدة
+https://www.youtube.com/watch?v=JQ7mRtfj02I
+تيغ وليو
+https://www.youtube.com/watch?v=-BaC2_cmAiU
+عيد ميلادي
+https://www.youtube.com/watch?v=OzAZIsAyzk0
+سجن الهاتف المحمول
+https://www.youtube.com/watch?v=zoMjGCG5dnA
+تحدي الطائرة
+https://www.youtube.com/watch?v=XcUp-tb9bJM
+روزي وأصدقاؤها
+https://www.youtube.com/watch?v=-YiFym-tpQQ
+قناة أسرتنا مباشر
+https://www.youtube.com/watch?v=JQ7mRtfj02I
+أبطال التايتنز، انطلقوا!
+https://www.youtube.com/watch?v=21hAlnDFTLw
+نقيب لابرادور
+https://www.youtube.com/watch?v=AmHD0lbMRWk
+
+متجر تطبيقات الفحام
+https://youtu.be/LCmQ70JPXCI?si=NthnmTYKKWEo2xDz
+
+
+`;
+
+const grid = document.getElementById("channelsGrid");
+
+function getYouTubeId(url){
+  if (!url) return null;
+  try {
+    const parsed = new URL(url);
+    const host = parsed.hostname.toLowerCase();
+    let id = null;
+
+    if (host === 'youtu.be') {
+      id = parsed.pathname.split('/').filter(Boolean)[0];
+    } else if (host === 'youtube.com' || host.endsWith('.youtube.com')) {
+      id = parsed.searchParams.get('v');
+      if (!id) {
+        const match = parsed.pathname.match(/^\/(?:embed|live|shorts)\/([^/]+)/);
+        id = match ? match[1] : null;
+      }
+    }
+
+    return id && /^[A-Za-z0-9_-]{11}$/.test(id) ? id : null;
+  } catch (error) {
+    return null;
+  }
+}
+
+// توليد الكروت من النص
+const lines = channelsData.trim().split('\n').filter(l => l.trim() !== "");
+for (let i = 0; i < lines.length; i += 2) {
+    const title = lines[i].trim();
+    const stream = lines[i+1]?.trim();
+    if (title && stream) {
+        const card = document.createElement('button');
+        card.className = 'card';
+        card.type = 'button';
+        card.dataset.stream = stream;
+        card.dataset.title = title;
+        
+        const ytId = getYouTubeId(stream);
+        const img = ytId ? `https://i.ytimg.com/vi/${ytId}/hqdefault.jpg` : '';
+        const image = document.createElement('img');
+        image.src = img;
+        image.alt = title;
+        const cardTitle = document.createElement('div');
+        cardTitle.className = 'card-title';
+        cardTitle.textContent = title;
+        card.appendChild(image);
+        card.appendChild(cardTitle);
+        grid.appendChild(card);
+    }
+}
+
+// الكود الأصلي للتشغيل والتحكم
+const cards = document.querySelectorAll('.card');
+const playerPage = document.getElementById("playerPage");
+const youtubeFrame = document.getElementById("youtubeFrame");
+const ytPoster = document.getElementById("ytPoster");
+const home = document.getElementById("home");
+let playerOpen = false;
+
+if (!location.hash) {
+  try { history.replaceState({view: 'home'}, '', location.href); } catch (error) {}
+}
+
+function stopPlayback() {
+  youtubeFrame.onload = null;
+  youtubeFrame.src = 'about:blank';
+  ytPoster.removeAttribute('src');
+  ytPoster.style.display = 'none';
+}
+
+function closePlayer(updateHistory = false) {
+  if (!playerOpen && playerPage.style.display !== 'block') return;
+  stopPlayback();
+  playerPage.style.display = 'none';
+  home.style.display = 'block';
+  playerOpen = false;
+  if (updateHistory) {
+    try { history.replaceState({view: 'home'}, '', location.pathname + location.search); } catch (error) {}
+  }
+}
+
+window.addEventListener('load', function() {
+  const savedScroll = localStorage.getItem('scrollPosition');
+  if (savedScroll) {
+    setTimeout(() => {
+      window.scrollTo({ top: parseInt(savedScroll), behavior: 'auto' });
+      localStorage.removeItem('scrollPosition');
+    }, 100);
+  }
+});
+
+function openPlayer(ytId, pushHistory) {
+  if (!ytId) return;
+    localStorage.setItem('scrollPosition', window.scrollY);
+    ytPoster.src = `https://i.ytimg.com/vi/${ytId}/hqdefault.jpg`;
+    ytPoster.style.display = 'block';
+    home.style.display = 'none';
+    playerPage.style.display = 'block';
+    youtubeFrame.src = `https://www.youtube.com/embed/${ytId}?autoplay=1&rel=0&modestbranding=1&iv_load_policy=3&playsinline=1`;
+    youtubeFrame.onload = ()=>{ ytPoster.style.display = 'none'; };
+    playerOpen = true;
+    if (pushHistory) {
+      try { history.pushState({view: 'player', videoId: ytId}, '', '#play=' + ytId); } catch (error) {}
+    }
+}
+
+cards.forEach(card=>{
+  card.onclick = ()=> openPlayer(getYouTubeId(card.dataset.stream), true);
+});
+
+const savedPlayer = location.hash.match(/^#play=([A-Za-z0-9_-]{11})$/);
+if (savedPlayer) openPlayer(savedPlayer[1], false);
+
+window.addEventListener('popstate', () => {
+  if (playerOpen || playerPage.style.display === 'block') closePlayer(false);
+});
+
+document.addEventListener('keydown', event => {
+  if (event.key === 'Escape' && playerOpen) history.back();
+});
+
+window.addEventListener('pagehide', stopPlayback);
+window.addEventListener('beforeunload', stopPlayback);
+</script>
+
+</body>
+</html>
